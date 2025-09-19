@@ -1,0 +1,36 @@
+<!-- <?xml version="1.0" encoding="UTF-8"?> -->
+<launch>
+  <arg name="frame_id"
+        default="map" 
+        description="Name of the coordinate frame associated with the map"/>
+  <arg name="resolution"
+        default="0.25"
+        description="Size of the cells in the occupancy grid in meters"/>
+  <arg name="filename"
+        default="$(find-pkg-share occupancy_grid)/maps/map0.yaml"
+        description="Name of the file containing the environment description"/>
+
+  <node name="create_occupancy_grid" 
+        pkg="occupancy_grid" 
+        exec="occupancy_grid_node"
+        output="screen">
+    <param name="frame_id" value="$(var frame_id)"/>
+    <param name="resolution" value="$(var resolution)"/>
+    <param from="$(var filename)"/>
+  </node>
+  
+  <node name="block_visualizer"
+        pkg="occupancy_grid" 
+        exec="block_visualizer"
+        output="screen">
+    <param name="alpha" value="0.5"/>
+    <param name="frame_id" value="$(var frame_id)"/>
+    <param name="resolution" value="$(var resolution)"/>
+    <param from="$(var filename)"/>
+  </node>
+  
+  <node name="rviz" 
+        pkg="rviz2" 
+        exec="rviz2" 
+        args="-d $(find-pkg-share occupancy_grid)/rviz/occupancy_grid.rviz"/>
+</launch>
