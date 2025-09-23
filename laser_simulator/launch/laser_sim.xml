@@ -1,0 +1,75 @@
+<launch>
+  <arg name="model"
+       default="$(env TURTLEBOT3_MODEL)"
+       description="model type [burger, waffle, waffle_pi]"/>
+  <arg name="initial_pose_x"
+       default="0.0"
+       description="initial x position of the robot"/>
+  <arg name="initial_pose_y"
+       default="0.0"
+       description="initial y position of the robot"/>
+  <arg name="initial_pose_a"
+       default="0.0"
+       description="initial angle of the robot"/>
+
+  <!-- <param name="tb3_model" value="$(var model)"/> -->
+  <let name="urdf"
+       value="$(find-pkg-share turtlebot3_description)/urdf/turtlebot3_$(env TURTLEBOT3_MODEL).urdf"/>
+
+  <!-- <include file="$(find-pkg-share turtlebot3_bringup)/launch/includes/description.launch.xml">
+    <arg name="model" value="$(var model)" />
+  </include> -->
+
+  <!-- <param name="wheel_left_joint_name" value="/ground_truth/wheel_left_joint"/>
+  <param name="wheel_right_joint_name" value="/ground_truth/wheel_right_joint"/>
+  <param name="joint_states_frame" value="/ground_truth/base_footprint"/>
+  <param name="odom_frame" value="/ground_truth/odom"/>
+  <param name="base_frame" value="/ground_truth/base_footprint"/> -->
+
+  <node name="turtlebot3_fake_node"
+        pkg="turtlebot3_fake_node"
+        exec="turtlebot3_fake_node"
+        output="screen">
+    <remap from="cmd_vel" to="/cmd_vel"/>
+    <param from="$(find-pkg-share turtlebot3_fake_node)/param/$(env TURTLEBOT3_MODEL).yaml"/>
+  </node>
+
+  <node name="robot_state_publisher"
+        pkg="robot_state_publisher"
+        exec="robot_state_publisher"
+        output="screen">
+    <param name="publish_frequency" value="50.0" />
+    <param name="tf_prefix" value="ground_truth"/>
+    <param name='robot_description' value="$(command 'xacro $(var urdf)')"/>
+  </node>
+  
+  <node name="map_odom_tf"
+        pkg="tf2_ros"
+        exec="static_transform_publisher" 
+        args="--x $(var initial_pose_x) --y $(var initial_pose_y) --yaw $(var initial_pose_a)
+              --frame-id /map --child-frame-id /ground_truth/odom" />
+
+  <node name="laser_sim_node"
+        pkg="laser_simulator"
+        exec="laser_sim_node"
+        output="screen">
+    <!-- <remap from="~map" to="/map"/>
+    <remap from="~odom" to="odom"/>
+    <remap from="~scan" to="scan"/> -->
+    <!-- <param from="$(find-pkg-share laser_simulator)/config/models.yaml"/> -->
+    <param from="$(find-pkg-share laser_simulator)/models/LDS_01.yaml"/>
+    <param name="min_angle_deg" value="-135.0"/>
+    <param name="frame_id" value="ground_truth/base_scan"/>
+    <param name="offset/x" value="0.0"/>
+    <param name="offset/y" value="0.0"/>
+    <param name="offset/z" value="0.0"/>
+  </node>
+
+  <!-- <node name="laser_repub"
+        pkg="mee4411_core"
+        type="laser_repub.py"
+        output="screen">
+    <remap from="~scan_out" to="/scan"/>
+  </node> -->
+
+</launch>
