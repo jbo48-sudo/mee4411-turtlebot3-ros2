@@ -1,8 +1,9 @@
 from nav_msgs.msg import OccupancyGrid
 
+import math
 import numpy as np
 from typing import Tuple
-
+#rev0
 
 class MapConversions:
     def __init__(self, boundary, resolution: float) -> None:
@@ -19,8 +20,11 @@ class MapConversions:
         self.resolution = resolution
         ##### YOUR CODE STARTS HERE ##### # noqa: E266
         # TODO Create the array shape in the format (# rows, # columns)
-        self.array_shape = (0, 0)
-        ##### YOUR CODE ENDS HERE   ##### # noqa: E266
+        xmin, ymin, xmax, ymax = self.boundary
+        N_cols = math.floor ((xmax-xmin) / self.resolution) #number of columns
+        N_rows = math.floor ((ymax-ymin) / self.resolution) #number of rows
+        self.array_shape = (N_rows, N_cols)
+                ##### YOUR CODE ENDS HERE   ##### # noqa: E266
 
     @classmethod
     def from_msg(cls, msg: OccupancyGrid):
@@ -29,6 +33,17 @@ class MapConversions:
         # TODO Extract the boundary and cell resolution from the occupancy grid message
         boundary = [0, 0, 1, 1]
         resolution = 1.
+        #maybe delete?
+        resolution = msg.info.resolution #cell size
+
+        xmin = msg.info.origin.position.x #xmin
+        ymin = msg.info.origin.position.y #ymin
+
+        xmax = xmin + msg.info.width * resolution #number of cells in x
+        ymax = ymin + msg.info.height * resolution #number of cells in y
+
+        boundary = [xmin, ymin, xmax, ymax] #map boundary
+
         ##### YOUR CODE ENDS HERE   ##### # noqa: E266
         return cls(boundary, resolution)
 
@@ -47,6 +62,10 @@ class MapConversions:
         ##### YOUR CODE STARTS HERE ##### # noqa: E266
         # TODO Convert data in (row, col) format to ind format
         inds = -np.ones_like(rows)
+
+        valid = (rows >= 0) & (rows < self.array_shape[0]) & (cols >= 0) & (cols < self.array_shape[1]) #find valid pair row col
+
+        inds[valid] = rows[valid] * self.array_shape[1] + cols[valid] #linear indices for valid
         ##### YOUR CODE ENDS HERE   ##### # noqa: E266
         return inds
 
@@ -66,6 +85,14 @@ class MapConversions:
         # TODO Convert data in ind format to (row, col) format
         rows = -np.ones_like(inds)
         cols = -np.ones_like(inds)
+
+        n_rows, n_cols = self.array_shape
+        total_cells = n_rows * n_cols
+
+        valid = (inds >= 0) & (inds < total_cells) #find valid indices
+
+        rows[valid] = inds[valid] // n_cols  #convert valid indices to row and column
+        cols[valid] = inds[valid] % n_cols
         ##### YOUR CODE ENDS HERE   ##### # noqa: E266
         return rows, cols
 
@@ -87,6 +114,18 @@ class MapConversions:
         rows = -np.ones_like(x)
         cols = -np.ones_like(y)
         ##### YOUR CODE ENDS HERE   ##### # noqa: E266
+        xmin, ymin, xmax, ymax = self.boundary
+
+        n_rows, n_cols = self.array_shape
+
+        valid = (x >= xmin) & (x <= xmax) & (y >= ymin) & (y <= ymax) #find valid coordinates
+
+        cols[valid] = np.floor((x[valid]-xmin)/ self.resolution).astype(int) #convert valid x,y to c,r indices
+        cols[valid] = np.minimum(cols[valid], n_cols - 1) #GPT fixed
+
+        rows[valid] = np.floor((y[valid]-ymin) / self.resolution).astype(int)
+        rows[valid] = np.minimum(rows[valid], n_rows - 1)  #GPT fixed
+
         return rows, cols
 
     def sub2xy(self, rows: np.array, cols: np.array) -> Tuple[np.array, np.array]:
@@ -107,6 +146,15 @@ class MapConversions:
         x = np.nan * np.ones_like(rows)
         y = np.nan * np.ones_like(cols)
         ##### YOUR CODE ENDS HERE   ##### # noqa: E266
+
+        xmin, ymin, xmax, ymax = self.boundary
+        n_rows, n_cols = self.array_shape
+
+        valid = (rows >= 0) & (rows < n_rows) & (cols >= 0) & (cols < n_cols) #valid subscripts
+
+        x[valid] = xmin + (cols[valid] + 0.5) * self.resolution #convert valid row/col to x/y coordinates
+        y[valid] = ymin + (rows[valid] + 0.5) * self.resolution
+
         return x, y
 
     def xy2ind(self, x: np.array, y: np.array) -> np.array:
