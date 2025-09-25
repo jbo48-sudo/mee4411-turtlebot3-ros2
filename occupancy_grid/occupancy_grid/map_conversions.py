@@ -92,6 +92,7 @@ class MapConversions:
         valid = (inds >= 0) & (inds < total_cells) #find valid indices
 
         rows[valid] = inds[valid] // n_cols  #convert valid indices to row and column
+        #// is flowr division
         cols[valid] = inds[valid] % n_cols
         ##### YOUR CODE ENDS HERE   ##### # noqa: E266
         return rows, cols
@@ -145,6 +146,8 @@ class MapConversions:
         # TODO Convert data in (row, col) format to (x, y) format
         x = np.nan * np.ones_like(rows)
         y = np.nan * np.ones_like(cols)
+
+        #why use np.nan?-jim?
         ##### YOUR CODE ENDS HERE   ##### # noqa: E266
 
         xmin, ymin, xmax, ymax = self.boundary
