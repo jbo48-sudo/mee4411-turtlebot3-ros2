@@ -59,7 +59,7 @@ class OccupancyGridMap(MapConversions):
         ymax = min(self.data.shape[0], ymax)
 
         # Fill the block region in self.data with 1s (or any desired value)
-        self.data[ymin:ymax, xmin:xmax] = 1
+        self.data[ymin:ymax, xmin:xmax] = 100
         ##### YOUR CODE ENDS HERE   ##### # noqa: E266
 
     def to_msg(self, time: Time) -> OccupancyGrid:
