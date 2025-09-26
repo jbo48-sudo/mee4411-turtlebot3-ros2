@@ -38,10 +38,18 @@ class CollisionDetectionNode(Node):
                                value=False,
                                descriptor=ParameterDescriptor(
                                    type=ParameterType.PARAMETER_BOOL))
+        self.declare_parameter('map_conversions_implemented',
+                               value=False,
+                               descriptor=ParameterDescriptor(
+                                   type=ParameterType.PARAMETER_BOOL))
         self.declare_parameter('rate',
                                value=10.0,
                                descriptor=ParameterDescriptor(
                                    type=ParameterType.PARAMETER_DOUBLE))
+        
+        # Check if MapConversions is implemented
+        self.map_conversions_implemented = \
+            self.get_parameter('map_conversions_implemented').get_parameter_value().bool_value
 
         # TB3 Params
         self.params = TB3Params(self.get_parameter('tb3_model').get_parameter_value().string_value)
@@ -88,7 +96,8 @@ class CollisionDetectionNode(Node):
         """Prepare the map for collision detection."""
         with self.lock:
             self.get_logger().info('Received map')
-            self.have_map = True
+            if not self.map_conversions_implemented:
+                return
             # Store map info
             self.map_frame_id = msg.header.frame_id
             self.resolution = msg.info.resolution
@@ -103,13 +112,17 @@ class CollisionDetectionNode(Node):
             r = self.resolution/2
             box = [v(-r, -r), v(-r, r), v(r, r), v(r, -r)]
             self.map_boxes = [Poly(v(x, y), box) for x, y in zip(xx, yy)]
+            self.have_map = True
 
     def timer_callback(self):
         """Check for collisions."""
         # Ensure we have a map
         with self.lock:
+            if not self.map_conversions_implemented:
+                self.get_logger().warning('Map conversions not implemented', once=True)
+                return
             if not self.have_map:
-                self.get_logger().warning_once('No map received yet')
+                self.get_logger().warning('No map received yet', once=True)
                 return
             self.get_logger().info('Checking for collisions with the map', once=True)
             # Get pose of the robot in the map frame
