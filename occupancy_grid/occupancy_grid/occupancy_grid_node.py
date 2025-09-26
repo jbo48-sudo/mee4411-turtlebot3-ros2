@@ -19,17 +19,16 @@ class OccupancyGridNode(Node):
         qos_profile.durability = DurabilityPolicy.TRANSIENT_LOCAL
         self.publisher_ = self.create_publisher(OccupancyGrid, 'map', qos_profile)
 
-        # TODO Set up the ROS publisher for the occupancy grid map
-        self.publisher_ = self.create_publisher(OccupancyGrid, 'map', qos_profile)
-
         # TODO Read in the map information from the ROS parameter server
-        self.declare_parameter('boundary', [0.0, 0.0, 5.0, 5.0])
-        self.declare_parameter('map_resolution', 1.0)
+        self.declare_parameter('boundary')
+        self.declare_parameter('resolution', 1.0)
         self.declare_parameter('frame_id', 'map')
 
         boundary = self.get_parameter('boundary').get_parameter_value().double_array_value
-        resolution = self.get_parameter('map_resolution').get_parameter_value().double_value
+        resolution = self.get_parameter('resolution').get_parameter_value().double_value
         frame_id = self.get_parameter('frame_id').get_parameter_value().string_value
+
+        
 
         # TODO Create an OccupancyGridMap based on the provided data using occupancy_grid_utils
         self.map_ = OccupancyGridMap(boundary, resolution, frame_id)
