@@ -61,8 +61,8 @@ class CollisionDetectionNode(Node):
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
 
         # Map
-        self.map_frame_id = None
         self.lock = Lock()
+        self.have_map = False
         if self.get_parameter('use_map_topic').get_parameter_value().bool_value:
             latching_qos = QoSProfile(depth=1, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL)
             self.map_sub = self.create_subscription(
@@ -71,11 +71,12 @@ class CollisionDetectionNode(Node):
                 self.map_callback,
                 qos_profile=latching_qos)
         else:
-            map_client = self.create_client(GetMap, 'static_map')
+            map_client = self.create_client(GetMap, 'map_server/map')
             map_client.wait_for_service()
-            self.get_clock().sleep_for(1.0)
-            res = map_client.call()
-            self.prepare_map(res.map)
+            self.get_clock().sleep_for(rclpy.time.Duration(seconds=1.0))
+            future = map_client.call_async(GetMap.Request())
+            rclpy.spin_until_future_complete(self, future)
+            self.prepare_map(future.result().map)
         # Timer
         rate = self.get_parameter('rate').get_parameter_value().double_value
         self.timer = self.create_timer(1/rate, self.timer_callback)
@@ -84,7 +85,11 @@ class CollisionDetectionNode(Node):
         self.prepare_map(msg)
 
     def prepare_map(self, msg: OccupancyGrid) -> None:
+        """Prepare the map for collision detection."""
         with self.lock:
+            self.get_logger().info('Received map')
+            self.have_map = True
+            # Store map info
             self.map_frame_id = msg.header.frame_id
             self.resolution = msg.info.resolution
             # Find objects in map
@@ -98,28 +103,35 @@ class CollisionDetectionNode(Node):
             r = self.resolution/2
             box = [v(-r, -r), v(-r, r), v(r, r), v(r, -r)]
             self.map_boxes = [Poly(v(x, y), box) for x, y in zip(xx, yy)]
-            print(self.map_boxes[0])
 
-    def timer_callback(self, event):
-        # Get pose
-        x, y, t = lookup_transform(
-            self.tf_buffer,
-            self.map_frame_id,
-            self.robot_frame_id,
-            self.get_clock().now(),
-            format='xyt')
-        # Check for collision
+    def timer_callback(self):
+        """Check for collisions."""
+        # Ensure we have a map
         with self.lock:
-            # Check for potential collisions
+            if not self.have_map:
+                self.get_logger().warning_once('No map received yet')
+                return
+            self.get_logger().info('Checking for collisions with the map', once=True)
+            # Get pose of the robot in the map frame
+            try:
+                x, y, t = lookup_transform(
+                    self.tf_buffer,
+                    self.map_frame_id,
+                    self.robot_frame_id,
+                    rclpy.time.Time(),  # rclpy.time.Time() for latest transform
+                    format='xyt')
+            except Exception as err:
+                self.get_logger().warn(err)
+                return
+            # Get objects nearby the robot's current position
             ii = self.kdtree.query_ball_point((x, y), self.radius+self.resolution)
-            # Check for collisions with all nearby boxes
+            # Check for collisions with those nearby boxes
             self.robot_poly.pos.x = x
             self.robot_poly.pos.y = y
             self.robot_poly.angle = t
             for i in ii:
                 if collide(self.robot_poly, self.map_boxes[i]):
-                    self.get_logger().fatal('Turtlebot collided with something in the map')
-                    self.destroy_node()
+                    raise SystemExit
 
 
 def main(args=None):
@@ -130,7 +142,10 @@ def main(args=None):
     cdnode = CollisionDetectionNode()
 
     # Let the node run until it is killed
-    rclpy.spin(cdnode)
+    try:
+        rclpy.spin(cdnode)
+    except SystemExit:
+        cdnode.get_logger().error('Turtlebot collided with something in the map')
 
     # Clean up the node and stop ROS2
     cdnode.destroy_node()

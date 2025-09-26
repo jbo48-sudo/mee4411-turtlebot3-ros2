@@ -1,5 +1,4 @@
 from rclpy.duration import Duration
-from rclpy.impl.rcutils_logger import RcutilsLogger
 from rclpy.time import Time
 import tf2_ros
 
@@ -11,11 +10,11 @@ from typing import Optional, Tuple, Union
 from .transform2d_utils import transform2homogeneous, transform2xyt
 
 
-def lookup_transform(logger: RcutilsLogger,
-                     tf_buffer: tf2_ros.Buffer,
+def lookup_transform(tf_buffer: tf2_ros.Buffer,
                      base_frame: str,
                      child_frame: str,
                      stamp: Time,
+                     *,
                      time_travel: Optional[Duration] = Duration(seconds=0),
                      format: Optional[str] = 'transform'
                      ) -> Union[None, np.ndarray, Transform, Tuple]:
@@ -27,7 +26,7 @@ def lookup_transform(logger: RcutilsLogger,
         tf_buffer: TF2 buffer object
         base_frame: base frame of transformation
         child_frame: child frame of transformation
-        stamp: time stamp for TF lookup
+        stamp: time stamp for TF lookup (rclpy.time.Time() for the latest available)
         time_travel: amount to move backward in time
         format: format of the returned transformation 'transform', 'homogeneous', or 'xyt'
     Outputs:
@@ -35,8 +34,7 @@ def lookup_transform(logger: RcutilsLogger,
     """
     # Formation validation
     if format not in {'transform', 'homogeneous', 'xyt'}:
-        logger.warn(f'Format {format} not valid, must be: transform, homogeneous, or xyt')
-        return None
+        raise ValueError(f'Format {format} not valid, must be: transform, homogeneous, or xyt')
 
     # Lookup transform
     try:
@@ -44,12 +42,11 @@ def lookup_transform(logger: RcutilsLogger,
             base_frame,
             child_frame,
             stamp - time_travel,
-            Duration(seconds=2.0)
+            timeout=Duration(seconds=2.0)
         )
     except (tf2_ros.LookupException,
             tf2_ros.ConnectivityException,
-            tf2_ros.ExtrapolationException) as error:
-        logger.warn(f'TF lookup failed: {error}')
+            tf2_ros.ExtrapolationException):
         raise
 
     # Return value

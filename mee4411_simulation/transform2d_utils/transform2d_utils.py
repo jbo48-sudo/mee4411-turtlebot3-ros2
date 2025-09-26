@@ -6,7 +6,7 @@ from typing import Tuple
 
 def transform2xyt(T: Transform) -> Tuple[float, float, float]:
     """
-    Convert geometry_msgs/Transform to (x, y, theta).
+    Convert geometry_msgs/msg/Transform to (x, y, theta).
 
     Inputs:
         T: geometry_msgs/Transform object

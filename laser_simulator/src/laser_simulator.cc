@@ -36,7 +36,7 @@
 #include "tf2/LinearMath/Quaternion.h"
 #include "tf2/LinearMath/Transform.h"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
-#include "tf2_ros/transform_listener.hpp"
+#include "tf2_ros/transform_listener.h"
 #include "tf2_ros/buffer.h"
 
 using std::placeholders::_1;
@@ -216,7 +216,8 @@ public:
       RCLCPP_WARN_ONCE(this->get_logger(), "No map received yet");
       return;
     }
-    msg.header.stamp = this->get_clock()->now() - rclcpp::Duration::from_seconds(sim.GetScanTime());
+    // msg.header.stamp = this->get_clock()->now() - rclcpp::Duration::from_seconds(sim.GetScanTime());
+    msg.header.stamp = this->get_clock()->now();
     geometry_msgs::msg::PoseStamped p, pm;
     // Create pose at origin of laser frame
     p.header.stamp = msg.header.stamp;
@@ -227,7 +228,7 @@ public:
       geometry_msgs::msg::TransformStamped transform = tf_buffer_->lookupTransform(
         map_frame_id,
         p.header.frame_id,
-        p.header.stamp,
+        rclcpp::Time(),
         rclcpp::Duration::from_seconds(sim.GetScanTime())
       );
 

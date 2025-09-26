@@ -33,7 +33,7 @@
 
     <!-- Simulated Robot -->
     <group>
-        <!-- <push-ros-namespace namespace="$(var sim_namespace)"/> -->
+        <push-ros-namespace namespace="$(var sim_namespace)"/>
         <include file="$(find-pkg-share mee4411_simulation)/launch/tb3_simulation.xml">
             <arg name="sim_namespace"   value="$(var sim_namespace)" />
             <arg name="initial_pose_x"  value="$(var initial_pose_x)" />

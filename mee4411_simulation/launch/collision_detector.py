@@ -13,9 +13,9 @@ def generate_launch_description():
         package='mee4411_simulation',
         executable='collision_detector',
         output='screen',
+        emulate_tty=True,  # for colored output
         parameters=[
             {'tb3_model': EnvironmentVariable('TURTLEBOT3_MODEL')},
-            
         ]
     )
 

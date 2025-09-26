@@ -26,7 +26,6 @@
      <node name="robot_state_publisher"
            pkg="robot_state_publisher"
            exec="robot_state_publisher"
-           namespace="$(var sim_namespace)"
            output="screen">
           <param name="publish_frequency" value="50.0" />
           <param name='robot_description' value="$(command 'xacro $(var urdf) namespace:=$(var sim_namespace)')"/>
@@ -36,7 +35,6 @@
      <node name="turtlebot3_fake_node"
            pkg="turtlebot3_fake_node"
            exec="turtlebot3_fake_node"
-           namespace="$(var sim_namespace)"
            output="screen">
           <remap from="cmd_vel" to="/cmd_vel"/>
           <remap from="tf" to="/tf"/>
@@ -50,8 +48,7 @@
      <!-- Localization -->
      <node name="map_odom_tf"
            pkg="tf2_ros"
-           exec="static_transform_publisher" 
-           namespace="$(var sim_namespace)"
+           exec="static_transform_publisher"
            args="--x $(var initial_pose_x)
                  --y $(var initial_pose_y)
                  --yaw $(var initial_pose_a)
@@ -62,7 +59,6 @@
      <node name="laser_sim_node"
            pkg="laser_simulator"
            exec="laser_sim_node"
-           namespace="$(var sim_namespace)"
            output="screen">
           <remap from="map" to="/map"/>
           <param from="$(find-pkg-share laser_simulator)/models/LDS_01.yaml"/>
@@ -77,7 +73,6 @@
      <node name="sensor_republisher"
            pkg="mee4411_simulation"
            exec="sensor_republisher"
-           namespace="$(var sim_namespace)"
            output="screen">
           <remap from="~/scan_out" to="/scan"/>
           <remap from="~/joint_states_out" to="/joint_states"/>

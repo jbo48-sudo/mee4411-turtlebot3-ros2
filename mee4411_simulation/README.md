@@ -31,9 +31,10 @@ This directory contains the following files and folders:
 
 ## Launch Files
 
-- [`launch/collision_detector.py`](launch/collision_detector.py): Launch script for collision detection node.
-- [`launch/simulation.xml`](launch/simulation.xml): XML launch file for simulation.
-- [`launch/tb3_simulation.py`](launch/tb3_simulation.py): Launch script for TurtleBot3 simulation node.
+The `simulation.xml` file is the main one you will need to use. This brings up the full simulation with all the pieces of it, including calling the other launch files.
+
+- [`launch/collision_detector.py`](launch/collision_detector.py): Launch script for the collision detection node.
+- [`launch/simulation.xml`](launch/simulation.xml): XML launch file for the full simulation. This is the main one you will need to use.
 - [`launch/tb3_simulation.xml`](launch/tb3_simulation.xml): XML launch file for TurtleBot3 simulation.
 
 ## Python Package
@@ -46,7 +47,7 @@ This package has useful helper functions to make the simulation work properly. T
 
 ## Parameters
 
-These files are copies of those from the [`turtlebo3_fake_node` package](https://github.com/ROBOTIS-GIT/turtlebot3_simulations/tree/9be186fb03d84ed4f293e5c0db71d8c05bbc91f3/turtlebot3_fake_node/param), which have been modified to work in different robot namespaces.
+These files are copies of those from the [`turtlebo3_fake_node` package](https://github.com/ROBOTIS-GIT/turtlebot3_simulations/tree/9be186fb03d84ed4f293e5c0db71d8c05bbc91f3/turtlebot3_fake_node/param), which have been modified to work in different robot namespaces (required for how our simulation is set up).
 
 - [`param/burger.yaml`](param/burger.yaml): Parameters for TurtleBot3 Burger model.
 - [`param/waffle.yaml`](param/waffle.yaml): Parameters for TurtleBot3 Waffle model.
@@ -79,12 +80,12 @@ This package creates a class to store useful parameters for the TB3. This is a h
 This package has utilities to convert between different types of coordinate representations. You will be asked to fill these in (see below).
 
 - [`transform2d_utils/__init__.py`](transform2d_utils/__init__.py): Initializes the transform2d_utils Python package.
-- [`transform2d_utils/lookup_transform.py`](transform2d_utils/lookup_transform.py): Utility for looking up transforms.
+- [`transform2d_utils/lookup_transform.py`](transform2d_utils/lookup_transform.py): Utility for looking up transforms. Used in other pieces of the project later.
 - [`transform2d_utils/transform2d_utils.py`](transform2d_utils/transform2d_utils.py): 2D transformation utility functions.
 
 # Instructions
 
-Your task is to implement the code in the []`transform2d_utils`](transform2d_utils) package. This function has code to switch between three different data structures that can hold a transformation: a [`geometry_msgs/msg/Transform`](https://docs.ros.org/en/humble/p/geometry_msgs/msg/Transform.html), a list of $(x, y, \theta)$ values, and a 2D homogeneous transformation matrix, which has the form:
+Your task is to implement the code in the [`transform2d_utils.py`](transform2d_utils/transform2d_utils.py) file. This function has code to switch between three different data structures that can hold a transformation: a [`geometry_msgs/msg/Transform`](https://docs.ros.org/en/humble/p/geometry_msgs/msg/Transform.html), a list of $(x, y, \theta)$ values, and a 2D homogeneous transformation matrix, which has the form:
 ```math
 H = \begin{bmatrix}
 \cos(\theta) & -\sin(\theta) & x \\
@@ -92,6 +93,7 @@ H = \begin{bmatrix}
 0 & 0 & 1
 \end{bmatrix}.
 ```
+This homogenous transformation matrix combines the rotation matrix $R$ in the upper left, the translation vector in the upper right, and the bottom row is 0's followed by a 1.
 
 ## Code
 
@@ -117,12 +119,12 @@ colcon test --packages-select mee4411_simulation
 You can then view the results of the test with
 
 ```
-colcon test-results --verbose
+colcon test-result --verbose
 ```
 
 ## Simulation Integration
 
-The `transform2d_utils` are required for the `collision_detector` to work correctly (meaning the simulation will shut down when the robot drives into a wall). To test this, you can launch the simulation with
+The `transform2d_utils` are required for the `collision_detector` to work correctly (meaning the simulation will shut down when the robot drives into a wall). To test this, you can launch the simulation with:
 
 ```
 ros2 launch mee4411_simulation simulation.xml
