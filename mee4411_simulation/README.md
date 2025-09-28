@@ -124,7 +124,7 @@ colcon test-result --verbose
 
 ## Simulation Integration
 
-The `transform2d_utils` are required for the `collision_detector` to work correctly (meaning the simulation will shut down when the robot drives into a wall). To test this, you can launch the simulation with:
+The `map_conversions` from the `occupancy_grid` package are required for the `collision_detector` to work correctly (meaning the simulation will shut down when the robot drives into a wall). To test this, you must first set the parameter `map_conversions_implemented` in the `collision_detector` node to `True`. You will need to manually add this parameter to the file [`collision_detector.py`](launch/collision_detector.py). After that is done, you can launch the simulation with:
 
 ```
 ros2 launch mee4411_simulation simulation.xml
