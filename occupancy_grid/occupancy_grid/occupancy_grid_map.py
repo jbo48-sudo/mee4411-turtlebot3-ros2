@@ -1,142 +1,88 @@
 from rclpy.time import Time
-from nav_msgs.msg import OccupancyGrid
-
+from nav_msgs.msg import OccupancyGrid, MapMetaData
 import numpy as np
-
 from .map_conversions import MapConversions
-#rev0
 
 class OccupancyGridMap(MapConversions):
+    """
+    Occupancy grid map with data array and conversion utilities.
+    """
+
     def __init__(self, boundary, resolution, frame_id) -> None:
-        super(OccupancyGridMap, self).__init__(boundary, resolution)
-        # Set coordinate frame ID
+        super().__init__(boundary, resolution)
         self.frame_id = frame_id
-        # Initialize empty data array (2D array holding values)
-        #   In the range [0, 100], representing the probability of occupancy
-        #   If a cell is unknown, set to -1
-        self.data = np.zeros(self.array_shape)
+        # 0=free, 100=occupied
+        self.data = np.zeros(self.array_shape, dtype=np.int8)
 
     @classmethod
     def from_msg(cls, msg: OccupancyGrid):
-        """Create an object from an OccupancyGrid msg."""
-        ##### YOUR CODE STARTS HERE ##### # noqa: E266
-        # TODO Extract boundary, resolution, and frame_id from input message
-        boundary = [0., 0., 1., 1.]
-        resolution = 1.
+        """
+        Initialize from OccupancyGrid message.
+        """
         resolution = msg.info.resolution
         xmin = msg.info.origin.position.x
         ymin = msg.info.origin.position.y
-
         xmax = xmin + msg.info.width * resolution
         ymax = ymin + msg.info.height * resolution
         boundary = [xmin, ymin, xmax, ymax]
         frame_id = msg.header.frame_id
-        ##### YOUR CODE ENDS HERE   ##### # noqa: E266
 
-        # Initialize object
         ogm = cls(boundary, resolution, frame_id)
-
-        ##### YOUR CODE STARTS HERE ##### # noqa: E266
-        # TODO Update data array in ogm, based on conventions in the __init__ method
-        ogm.data = np.array(msg.data, dtype=int).reshape(ogm.array_shape)
-
-        ##### YOUR CODE ENDS HERE   ##### # noqa: E266
+        # Fill data
+        ogm.data = np.array(msg.data, dtype=np.int8).reshape(ogm.array_shape)
         return ogm
 
     def add_block(self, block: np.array) -> None:
         """
-        Add a block to the map stored in self.data.
-
-        Inputs:
-            block   np.array in the format (xmin, ymin, xmax, ymax)
+        Add rectangular block to occupancy grid.
         """
-        ##### YOUR CODE STARTS HERE ##### # noqa: E266
-        # TODO Fill in all the cells that overlap with the block
-        # Ensure indices are within the bounds of self.data
-        xmin = max(0, xmin)
-        ymin = max(0, ymin)
-        xmax = min(self.data.shape[1], xmax)
-        ymax = min(self.data.shape[0], ymax)
-
-        # Fill the block region in self.data with 1s (or any desired value)
-        self.data[ymin:ymax, xmin:xmax] = 100
-        ##### YOUR CODE ENDS HERE   ##### # noqa: E266
+        row_min, col_min = self.xy2sub(np.array([block[0]]), np.array([block[1]]))
+        row_max, col_max = self.xy2sub(np.array([block[2]]), np.array([block[3]]))
+        if row_min[0] < 0 or col_min[0] < 0 or row_max[0] < 0 or col_max[0] < 0:
+            return
+        self.data[row_min[0]:row_max[0]+1, col_min[0]:col_max[0]+1] = 100
 
     def to_msg(self, time: Time) -> OccupancyGrid:
         """
-        Convert the OccupancyGridMap object into an OccupancyGrid ROS message.
-
-        Inputs:
-            time    current ROS time
-        Outputs:
-            msg     OccupancyGrid ROS message
+        Convert to OccupancyGrid ROS message.
         """
         msg = OccupancyGrid()
-        ##### YOUR CODE STARTS HERE ##### # noqa: E266
-        # TODO Fill in all the fields of the msg using the data from the class
-        xmin, ymin, xmax, ymax = block
-        # Create a grid of x, y coordinates for all cells overlapping the block
-        x_coords = np.arange(xmin, xmax, self.resolution)
-        y_coords = np.arange(ymin, ymax, self.resolution)
-        # Create a meshgrid to cover the block
-        xv, yv = np.meshgrid(x_coords, y_coords)
+        msg.header.stamp = time.to_msg()
+        msg.header.frame_id = self.frame_id
 
-        # Flatten arrays to pass into xy2sub
-        rows, cols = self.xy2sub(xv.flatten(), yv.flatten())
+        msg.info = MapMetaData()
+        msg.info.resolution = self.resolution
+        msg.info.width = self.array_shape[1]
+        msg.info.height = self.array_shape[0]
+        msg.info.origin.position.x = self.boundary[0]
+        msg.info.origin.position.y = self.boundary[1]
+        msg.info.origin.position.z = 0.0
+        msg.info.origin.orientation.w = 1.0  # no rotation
 
-        # Update valid cells in the map to 100 (occupied)
-        valid = (rows >= 0) & (cols >= 0)
-        self.data[rows[valid], cols[valid]] = 100
-
-        ##### YOUR CODE ENDS HERE   ##### # noqa: E266
+        msg.data = self.data.flatten().tolist()
         return msg
 
-    def is_occupied(self, x: np.array, y: np.array) -> bool:
+    def is_occupied(self, x: np.array, y: np.array) -> np.array:
         """
-        Check whether the given cells are occupied.
-
-        Inputs:
-            x           numpy array of x values
-            y           numpy array of y values
-        Outputs:
-            occupied    np.array of bool values
+        Check occupancy for given (x, y) points.
         """
-        ##### YOUR CODE STARTS HERE ##### # noqa: E266
-        # TODO Check for occupancy in the map based on the input type
-        #used ai chat gpt ""
-        rows, cols = self.xy2sub(x, y) #Convert coordinates to row/column indices
-
-        occupied = np.zeros_like(x, dtype='bool')
-        valid = (rows >= 0) & (cols >= 0) ##check for valid indices
-        occupied[valid] = self.data[rows[valid], cols[valid]] > 0 ## Cells occupied if > 0
-
-        ##### YOUR CODE ENDS HERE   ##### # noqa: E266
-        return occupied
+        rows, cols = self.xy2sub(x, y)
+        mask = (rows >= 0) & (cols >= 0)
+        occ = np.zeros_like(x, dtype=bool)
+        occ[mask] = self.data[rows[mask], cols[mask]] > 50
+        return occ
 
     def where_occupied(self, format='xy') -> np.array:
         """
-        Find the locations of all cells that are occupied.
-
-        Inputs:
-            format      requested format of the returned data ('xy', 'rc', 'ind')
-        Outputs:
-            locations   np.array with the locations of occupied cells in the requested format
+        Return locations of all occupied cells in requested format.
         """
-        # Check that requested format is valid
-        #USED AI Chat GPT ""
-        if format not in ('xy', 'rc', 'ind'):
-            raise Exception(f'Requested format {format} invalid, must be xy, rc, or ind')
-        ##### YOUR CODE STARTS HERE ##### # noqa: E266
-        # TODO Check for occupancy in the map based on the input type
-        locations = np.zeros(2)
-        rows, cols = np.where(self.data > 0)  # row, col indices of occupied cells
-
+        rows, cols = np.where(self.data > 50)
         if format == 'rc':
-            locations = np.vstack((rows, cols)).T  # stack as Nx2 array of (row, col)
-        elif format == 'xy':
-            x, y = self.sub2xy(rows, cols)        # convert to (x, y) coordinates
-            locations = np.vstack((x, y)).T
+            return np.vstack((rows, cols)).T
         elif format == 'ind':
-            locations = self.sub2ind(rows, cols)  # convert to linear indices
-        ##### YOUR CODE ENDS HERE   ##### # noqa: E266
-        return locations
+            return self.sub2ind(rows, cols)
+        elif format == 'xy':
+            x, y = self.sub2xy(rows, cols)
+            return np.vstack((x, y)).T
+        else:
+            raise ValueError("format must be 'xy', 'rc', or 'ind'")
