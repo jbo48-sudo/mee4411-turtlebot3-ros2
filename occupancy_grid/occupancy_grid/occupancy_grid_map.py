@@ -67,9 +67,9 @@ class OccupancyGridMap(MapConversions):
         Check occupancy for given (x, y) points.
         """
         rows, cols = self.xy2sub(x, y)
-        mask = (rows >= 0) & (cols >= 0)
+        mask = (rows < 0) and (rows >= self.array_shape[0]) and (cols < 0) and (cols >= self.array_shape[1])
         occ = np.zeros_like(x, dtype=bool)
-        occ[mask] = self.data[rows[mask], cols[mask]] > 50
+        occ[mask] = self.data[rows[mask], cols[mask]] >= 50
         return occ
 
     def where_occupied(self, format='xy') -> np.array:
