@@ -1,3 +1,4 @@
+from rclpy.time import Time
 from sensor_msgs.msg import JointState
 
 import numpy as np
@@ -6,10 +7,10 @@ from typing import List
 from tb3_utils import TB3Params
 
 
-class TB3Kinematics:
+class TB3Kinematics(TB3Params):
 
     def __init__(self, robot_model) -> None:
-        self.params = TB3Params(robot_model)
+        super().__init__(robot_model)
 
     def calculate_wheel_change(
             self,

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import rclpy
 from rclpy.duration import Duration
+from rclpy.time import Time
 from rclpy.node import Node
 from rcl_interfaces.msg import ParameterDescriptor, ParameterType
 from sensor_msgs.msg import LaserScan, JointState
@@ -70,7 +71,8 @@ class SimRepub(Node):
         if self.noise_std_ > 0.0 and any([abs(v) > 0 for v in msg.velocity]):
             if self.prev_joint_state_ is not None:
                 # Get timing information
-                dt = (msg.header.stamp - self.prev_joint_state_.header.stamp).to_sec()
+                dt = (Time.from_msg(msg.header.stamp).nanoseconds - 
+                      Time.from_msg(self.prev_joint_state_.header.stamp).nanoseconds) / 1e9
                 if self.joint_state_rate_ is None:
                     self.joint_state_rate_ = dt
                 else:

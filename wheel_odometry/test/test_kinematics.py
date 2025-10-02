@@ -55,8 +55,8 @@ def test_calculate_displacement():
     delta_theta = [None] * len(delta_wheel_l)
     for i, (dwl, dwr, wr, ws) in \
             enumerate(zip(delta_wheel_l, delta_wheel_r, wheel_radius, wheel_separation)):
-        kn.params.wheel_radius = wr
-        kn.params.wheel_separation = ws
+        kn.wheel_radius = wr
+        kn.wheel_separation = ws
         (delta_s[i], delta_theta[i]) = kn.calculate_displacement(dwl, dwr)
 
     # Ensure that calculated outputs match desired outputs

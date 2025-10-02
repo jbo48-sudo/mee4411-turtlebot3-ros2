@@ -9,15 +9,7 @@ from nav_msgs.msg import Odometry
 
 import numpy as np
 
-from tb3_kinematics import TB3Kinematics
-
-# Indexing values
-LEFT = 0
-RIGHT = 1
-
-X = 0
-Y = 1
-THETA = 2
+from .tb3_kinematics import TB3Kinematics
 
 
 class WheelOdometryNode(Node, TB3Kinematics):
@@ -48,27 +40,27 @@ class WheelOdometryNode(Node, TB3Kinematics):
         self.prev_joint_states = None
 
         # Odometry message
-        self.odom = Odometry()
+        self.odom_msg = Odometry()
         ##### YOUR CODE STARTS HERE ##### # noqa: E266
         # TODO Initialize the coordinates frames in the odometry message
         pass
         ##### YOUR CODE ENDS HERE   ##### # noqa: E266
-        self.odom.pose.covariance = np.diag((0.1, 0.1, 1e6, 1e6, 1e6, 0.2)).flatten().tolist()
-        self.odom.twist.covariance = np.diag((0.1, 0.1, 1e6, 1e6, 1e6, 0.2)).flatten().tolist()
+        self.odom_msg.pose.covariance = np.diag((0.1, 0.1, 1e6, 1e6, 1e6, 0.2)).flatten().tolist()
+        self.odom_msg.twist.covariance = np.diag((0.1, 0.1, 1e6, 1e6, 1e6, 0.2)).flatten().tolist()
 
         # Robot pose in the odom frame in (x, y, theta) format
         self.pose = [0.0, 0.0, 0.0]  # (x, y, theta)
 
         # Publishers
-        self.odom_pub = self.create_publisher(Odometry, 'odom', queue_size=100)
-        self.tf_broadcaster = tf2_ros.TransformBroadcaster()
+        self.odom_pub = self.create_publisher(Odometry, 'odom', 100)
+        self.tf_broadcaster = tf2_ros.TransformBroadcaster(self)
 
         # Subscribers
         self.joint_states_sub = self.create_subscription(
             JointState,
             'joint_states',
             self.joint_states_callback,
-            queue_size=100)
+            100)
 
     def joint_states_callback(self, msg: JointState) -> None:
         """
@@ -130,8 +122,8 @@ class WheelOdometryNode(Node, TB3Kinematics):
         # TODO Update odometry message (stored in self.odom) based on new time, pose, and velocity
         pass
         ##### YOUR CODE ENDS HERE   ##### # noqa: E266
-        # Publish odometry
-        self.odom_pub.publish(self.odom)
+        # Publish odometry message
+        self.odom_pub.publish(self.odom_msg)
 
     def update_tf(self) -> None:
         """
