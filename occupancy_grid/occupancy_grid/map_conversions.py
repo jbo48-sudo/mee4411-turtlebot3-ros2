@@ -58,10 +58,24 @@ class MapConversions:
         """
         col = np.floor((x - self.boundary[0]) / self.resolution).astype(int)
         row = np.floor((y - self.boundary[1]) / self.resolution).astype(int)
+        
+        #### check borderlines here our try###
+        # if y == self.boundary[3]:
+        #     row= self.array_shape[0]-1
+        # if x == self.boundary[2]:
+        #     col = self.array_shape[1]-1
+        # Clamp to valid grid indices: 0 <= row < height, 0 <= col < width
+        
+        #np clip takes values outside bounds and sets to max min
+        height, width = self.array_shape
+        col = np.clip(col, 0, width - 1)
+        row = np.clip(row, 0, height - 1)
         # invalid coordinates
         mask = (row < 0) | (row >= self.array_shape[0]) | (col < 0) | (col >= self.array_shape[1])
         row[mask] = -1
         col[mask] = -1
+
+
         return row, col
 
     def sub2xy(self, rows: np.array, cols: np.array) -> Tuple[np.array, np.array]:
