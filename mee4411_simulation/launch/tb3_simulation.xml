@@ -76,7 +76,7 @@
            output="screen">
           <remap from="~/scan_out" to="/scan"/>
           <remap from="~/joint_states_out" to="/joint_states"/>
-          <param name="noise_std" value="$(eval $(var joint_noise_std)/pi)"/>
+          <param name="noise_std" value="$(eval $(var joint_noise_std)*pi/180)"/>
           <param name="namespace_remove" value="$(var sim_namespace)" />
      </node>
 

@@ -6,14 +6,17 @@ from rclpy.node import Node
 from rcl_interfaces.msg import ParameterDescriptor, ParameterType
 from sensor_msgs.msg import LaserScan, JointState
 
+from tb3_utils import TB3Params
+
 from copy import deepcopy
 import numpy as np
+import os
 
 
-class SimRepub(Node):
+class SimRepub(Node, TB3Params):
 
     def __init__(self) -> None:
-        super().__init__('repub_simulated_sensors')
+        Node.__init__(self, node_name='repub_simulated_sensors')
         # Declare paramters
         self.declare_parameter('namespace_remove',
                                value='',
@@ -27,6 +30,10 @@ class SimRepub(Node):
                                value=0.9,
                                descriptor=ParameterDescriptor(
                                    type=ParameterType.PARAMETER_DOUBLE))
+        self.declare_parameter('tb3_model',
+                               value=os.getenv('TURTLEBOT3_MODEL', 'burger'),
+                               descriptor=ParameterDescriptor(
+                                   type=ParameterType.PARAMETER_STRING))
 
         # Namespace to remove from frames
         self.namespace_remove_ = \
@@ -34,6 +41,11 @@ class SimRepub(Node):
         self.noise_std_ = self.get_parameter('noise_std').get_parameter_value().double_value
         self.alpha_ = \
             self.get_parameter('alpha').get_parameter_value().double_value  # running average param
+        self.tb3_model_ = \
+            self.get_parameter('tb3_model').get_parameter_value().string_value
+
+        # Get TB3 parameters
+        TB3Params.__init__(self, robot_model=self.tb3_model_)
 
         # ROS publishers and subscribers
         self.scan_pub_ = self.create_publisher(LaserScan, '~/scan_out', 10)
@@ -78,13 +90,21 @@ class SimRepub(Node):
                 else:
                     self.joint_state_rate_ = self.alpha_ * self.joint_state_rate_ \
                         + (1-self.alpha_) * dt
-                # Get change in position
-                delta = [p - q + np.random.randn() * self.noise_std_ * self.joint_state_rate_
-                         for p, q in zip(msg.position, self.prev_joint_state_.position)]
-                self.position_ = [p + d for p, d in zip(self.position_, delta)]
-                msg_out.position = self.position_
-                msg_out.velocity = [v + np.random.randn()*self.noise_std_*self.joint_state_rate_
-                                    for v in msg.velocity]
+
+                # Update position based on true displacement
+                self.position_ = [pos + (j1 - j0) for pos, j1, j0 in
+                                  zip(self.position_, msg.position, self.prev_joint_state_.position)]
+
+                # Update position with noise
+                w_max = self.v_max / self.wheel_radius  # max wheel angular velocity
+                for i, (p, w) in enumerate(zip(self.position_, self.velocity_)):
+                    std_dev = np.sqrt(dt) * self.noise_std_ * w / w_max
+                    self.position_[i] = p + np.random.normal(loc=0.0, scale=std_dev)
+                    self.velocity_[i] = w + np.random.normal(loc=0.0, scale=np.sqrt(std_dev))
+
+                # Update position and velocity
+                msg_out.position = deepcopy(self.position_)
+                msg_out.velocity = deepcopy(self.velocity_)
             self.prev_joint_state_ = msg
 
         # Publish message
