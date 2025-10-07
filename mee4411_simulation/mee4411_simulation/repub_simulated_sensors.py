@@ -80,7 +80,7 @@ class SimRepub(Node, TB3Params):
         msg_out.name = [self.stripName(n) for n in msg.name]
 
         # Add noise (only if moving)
-        if self.noise_std_ > 0.0 and any([abs(v) > 0 for v in msg.velocity]):
+        if self.noise_std_ > 0.0:
             if self.prev_joint_state_ is not None:
                 # Get timing information
                 dt = (Time.from_msg(msg.header.stamp).nanoseconds - 
@@ -91,16 +91,17 @@ class SimRepub(Node, TB3Params):
                     self.joint_state_rate_ = self.alpha_ * self.joint_state_rate_ \
                         + (1-self.alpha_) * dt
 
-                # Update position based on true displacement
+                # Get true information displacement
                 self.position_ = [pos + (j1 - j0) for pos, j1, j0 in
                                   zip(self.position_, msg.position, self.prev_joint_state_.position)]
+                self.velocity_ = [v for v in msg.velocity]
 
-                # Update position with noise
+                # Add noise proportional to wheel velocity
                 w_max = self.v_max / self.wheel_radius  # max wheel angular velocity
-                for i, (p, w) in enumerate(zip(self.position_, self.velocity_)):
-                    std_dev = np.sqrt(dt) * self.noise_std_ * w / w_max
-                    self.position_[i] = p + np.random.normal(loc=0.0, scale=std_dev)
-                    self.velocity_[i] = w + np.random.normal(loc=0.0, scale=np.sqrt(std_dev))
+                for i, (w) in enumerate(self.velocity_):
+                    std_dev = np.sqrt(dt) * self.noise_std_ * np.abs(w) / w_max
+                    self.position_[i] += std_dev * np.random.randn()
+                    self.velocity_[i] += std_dev * np.random.randn()
 
                 # Update position and velocity
                 msg_out.position = deepcopy(self.position_)

@@ -247,7 +247,7 @@ Visualization Manager:
               Color: 204; 51; 204
               Scale: 1
               Value: true
-            Value: true
+            Value: false
           Enabled: true
           Keep: 15
           Name: Odometry
@@ -490,5 +490,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1268
-  X: 496
-  Y: 265
+  X: 464
+  Y: 233
