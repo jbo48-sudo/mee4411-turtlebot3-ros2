@@ -2,20 +2,26 @@
 
 This package requires the Python `collision` library. You can install this using:
 
-```
+```bash
 pip3 install collision
 ```
 
 If you get an error that `pip3` is not installed, you can install it using the command:
 
-```
+```bash
 sudo apt install python3-pip
 ```
 
-You also need to install the turtlebot3 libraries
+You also need to install the turtlebot3 libraries and may need a few more ROS packages
 
+```bash
+sudo apt install ros-humble-turtlebot3 ros-humble-turtlebot3-simulations ros-humble-tf2-msgs ros-humble-nav2-map-server ros-humble-turtlebot3-teleop
 ```
-sudo apt install ros-humble-turtlebot3 ros-humble-turtlebot3-simulations ros-humble-tf2-msgs
+
+Lastly, you need to also set a new environment variable to specify which turtlebot3 model you are using. To set this to run every time you open up a terminal, use the following command in your terminal window:
+
+```bash
+echo "export TURTLEBOT3_MODEL=burger" >> ~/.bashrc
 ```
 
 # File Layout
