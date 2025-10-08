@@ -56,26 +56,25 @@ class MapConversions:
         """
         Convert world coordinates (x, y) to (row, col) subscripts.
         """
-        col = np.floor((x - self.boundary[0]) / self.resolution).astype(int)
-        row = np.floor((y - self.boundary[1]) / self.resolution).astype(int)
-        
-        #### check borderlines here our try###
-        # if y == self.boundary[3]:
-        #     row= self.array_shape[0]-1
-        # if x == self.boundary[2]:
-        #     col = self.array_shape[1]-1
-        # Clamp to valid grid indices: 0 <= row < height, 0 <= col < width
-        
-        #np clip takes values outside bounds and sets to max min
-        height, width = self.array_shape
-        col = np.clip(col, 0, width - 1)
-        row = np.clip(row, 0, height - 1)
-        # invalid coordinates
-        mask = (row < 0) | (row >= self.array_shape[0]) | (col < 0) | (col >= self.array_shape[1])
+        col = np.array(np.floor((x - self.boundary[0]) / self.resolution))
+        row = np.array(np.floor((y - self.boundary[1]) / self.resolution))
+        ## Look for top/right edge cases
+        # Top Edge
+        edge1=self.boundary[3]
+        # Right edge
+        edge2=self.boundary[2]
+
+        mask1 = (y == edge1)  
+        row[mask1] = row[mask1] -1
+
+        mask2 = (x == edge2)
+        col[mask2] = col[mask2] -1
+        # invalid coordinates out the bottom
+        mask = ( y < self.boundary[1]) |  ( x < self.boundary[0]) | ( y > self.boundary[3]) |  ( x > self.boundary[2]) | (np.isnan(y)) |(np.isnan(x))
         row[mask] = -1
         col[mask] = -1
-
-
+        col = col.astype('int')
+        row = row.astype('int')
         return row, col
 
     def sub2xy(self, rows: np.array, cols: np.array) -> Tuple[np.array, np.array]:
