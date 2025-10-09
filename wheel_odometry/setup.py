@@ -16,7 +16,7 @@ setup(
     maintainer='Philip Dames',
     maintainer_email='pdames@temple.edu',
     description='A package to perform wheel odometry for a differential drive robot',
-    license='LGPLv3',
+    license='LGPL-3.0-only',
     extras_require={
         'test': [
             'pytest',
