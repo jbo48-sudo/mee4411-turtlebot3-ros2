@@ -1,0 +1,83 @@
+<launch>
+    <arg name="model"
+         default="$(env TURTLEBOT3_MODEL)"
+         description="model type [burger, waffle, waffle_pi]"/>
+    <arg name="initial_pose_x"
+         default="0.0"
+         description="initial x position of the robot"/>
+    <arg name="initial_pose_y"
+         default="0.0"
+         description="initial y position of the robot"/>
+    <arg name="initial_pose_a"
+         default="0.0"
+         description="initial angle of the robot"/>
+    <arg name="joint_noise_std"
+         default="0.0"
+         description="standard deviation of wheel noise per second"/>
+    <arg name="sim_namespace"
+         default=""
+         description="namespace for `real` simulated robot" />
+
+     <!-- Robot file -->
+     <let name="urdf"
+          value="$(find-pkg-share turtlebot3_description)/urdf/turtlebot3_$(env TURTLEBOT3_MODEL).urdf"/>
+
+     <!-- Transformation on the robot -->
+     <node name="robot_state_publisher"
+           pkg="robot_state_publisher"
+           exec="robot_state_publisher"
+           output="screen">
+          <param name="publish_frequency" value="50.0" />
+          <param name='robot_description' value="$(command 'xacro $(var urdf) namespace:=$(var sim_namespace)')"/>
+     </node>
+
+     <!-- Odometry -->
+     <node name="turtlebot3_fake_node"
+           pkg="turtlebot3_fake_node"
+           exec="turtlebot3_fake_node"
+           output="screen">
+          <remap from="cmd_vel" to="/cmd_vel"/>
+          <remap from="tf" to="/tf"/>
+          <remap from="tf_static" to="/tf_static"/>
+          <param from="$(find-pkg-share mee4411_simulation)/param/$(env TURTLEBOT3_MODEL).yaml"/>
+          <param name="joint_states_frame" value="$(var sim_namespace)base_footprint"/>
+          <param name="odom_frame" value="$(var sim_namespace)odom"/>
+          <param name="base_frame" value="$(var sim_namespace)base_footprint"/>
+     </node>
+  
+     <!-- Localization -->
+     <node name="map_odom_tf"
+           pkg="tf2_ros"
+           exec="static_transform_publisher"
+           args="--x $(var initial_pose_x)
+                 --y $(var initial_pose_y)
+                 --yaw $(var initial_pose_a)
+                 --frame-id /map
+                 --child-frame-id $(var sim_namespace)odom" />
+
+     <!-- Laser scanner -->
+     <node name="laser_sim_node"
+           pkg="laser_simulator"
+           exec="laser_sim_node"
+           output="screen">
+          <remap from="map" to="/map"/>
+          <param from="$(find-pkg-share laser_simulator)/models/LDS_01.yaml"/>
+          <param name="frame_id" value="$(var sim_namespace)base_scan"/>
+          <param name="depth" value="1.0"/>
+          <param name="offset/x" value="0.0"/>
+          <param name="offset/y" value="0.0"/>
+          <param name="offset/z" value="0.0"/>
+     </node>
+
+     <!-- Republish sensor messages to base workspace -->
+     <node name="sensor_republisher"
+           pkg="mee4411_simulation"
+           exec="sensor_republisher"
+           output="screen">
+          <remap from="~/scan_out" to="/scan"/>
+          <remap from="~/joint_states_out" to="/joint_states"/>
+          <param name="noise_std" value="$(eval $(var joint_noise_std)*pi/180)"/>
+          <param name="namespace_remove" value="$(var sim_namespace)" />
+     </node>
+
+</launch>

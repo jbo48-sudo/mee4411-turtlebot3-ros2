@@ -1,1 +1,4 @@
 *.pyc
+*:Zone.Identifier
+__pycache__/
+.vscode/

@@ -1,0 +1,66 @@
+<launch>
+    <arg name="model"
+         default="$(env TURTLEBOT3_MODEL)"
+         description="model type [burger, waffle, waffle_pi]"/>
+    <arg name="initial_pose_x"
+         default="1.5"
+         description="initial x position of the robot"/>
+    <arg name="initial_pose_y"
+         default="11.6"
+         description="initial y position of the robot"/>
+    <arg name="initial_pose_a"
+         default="1.0"
+         description="initial angle of the robot"/>
+    <arg name="yaml_filename"
+         default="$(find-pkg-share occupancy_grid)/maps/levine-4.yaml"
+         description="YAML file for the map"/>
+
+    <let name="urdf"
+         value="$(find-pkg-share turtlebot3_description)/urdf/turtlebot3_$(env TURTLEBOT3_MODEL).urdf"/>
+
+    <node name="turtlebot3_fake_node"
+          pkg="turtlebot3_fake_node"
+          exec="turtlebot3_fake_node"
+          output="screen">
+        <remap from="cmd_vel" to="/cmd_vel"/>
+        <param from="$(find-pkg-share turtlebot3_fake_node)/param/$(env TURTLEBOT3_MODEL).yaml"/>
+    </node>
+
+    <node name="robot_state_publisher"
+          pkg="robot_state_publisher"
+          exec="robot_state_publisher"
+          output="screen">
+        <param name="publish_frequency" value="50.0" />
+        <param name="tf_prefix" value="ground_truth"/>
+        <param name='robot_description' value="$(command 'xacro $(var urdf)')"/>
+    </node>
+  
+    <node name="map_odom_tf"
+          pkg="tf2_ros"
+          exec="static_transform_publisher" 
+          args="--x $(var initial_pose_x) --y $(var initial_pose_y) --yaw $(var initial_pose_a)
+                --frame-id /map --child-frame-id /odom" />
+
+    <node name="laser_sim_node"
+          pkg="laser_simulator"
+          exec="laser_sim_node"
+          output="screen">
+        <param from="$(find-pkg-share laser_simulator)/models/LDS_01.yaml"/>
+        <param name="frame_id" value="base_scan"/>
+        <param name="depth" value="1.0"/>
+        <param name="offset/x" value="0.0"/>
+        <param name="offset/y" value="0.0"/>
+        <param name="offset/z" value="0.0"/>
+    </node>
+
+    <include file="$(find-pkg-share occupancy_grid)/launch/map_server.py">
+        <arg name="yaml_filename" value="$(var yaml_filename)"/>
+        <arg name="delay" value="5.0"/>
+    </include>
+
+    <node name="rviz"
+          pkg="rviz2"
+          exec="rviz2"
+          args="-d $(find-pkg-share laser_simulator)/rviz/test_laser_sim.rviz"/>
+
+</launch>
