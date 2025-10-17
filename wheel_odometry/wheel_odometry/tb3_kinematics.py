@@ -28,9 +28,21 @@ class TB3Kinematics(TB3Params):
         """
         ##### YOUR CODE STARTS HERE ##### # noqa: E266
         # TODO Calculate the output values
-        delta_wheel_l = 0.0
-        delta_wheel_r = 0.0
-        delta_time = 0.0
+        # JD:I think list needs index. but need sim to run and get joint names
+        # Need to figure out time stuff
+
+        new_lp = new_joint_states.position[0]
+        new_rp = new_joint_states.position[1]
+        
+        new_t = new_joint_states.header.stamp.sec
+
+        old_lp = prev_joint_states.position[0]
+        old_rp = prev_joint_states.position[1]
+        old_t = prev_joint_states.header.stamp.sec
+        
+        delta_wheel_l = (new_lp - old_lp)
+        delta_wheel_r = (new_rp - old_rp)
+        delta_time = (new_t-old_t)
         ##### YOUR CODE ENDS HERE   ##### # noqa: E266
 
         # Data validation
@@ -57,8 +69,13 @@ class TB3Kinematics(TB3Params):
         """
         ##### YOUR CODE STARTS HERE ##### # noqa: E266
         # TODO Calculate the output values
-        delta_s = 0.0  # linear displacement [m]
-        delta_theta = 0.0  # angular displacement [rad]
+        # Convert wheel rotation to linear displacement
+        d_left = delta_wheel_l * self.wheel_radius
+        d_right = delta_wheel_r * self.wheel_radius
+
+        # Linear and angular displacement
+        delta_s = (d_right + d_left) / 2.0
+        delta_theta = (d_right - d_left) / self.wheel_separation
         ##### YOUR CODE ENDS HERE   ##### # noqa: E266
 
         return (delta_s, delta_theta)
@@ -80,6 +97,19 @@ class TB3Kinematics(TB3Params):
         """
         ##### YOUR CODE STARTS HERE ##### # noqa: E266
         # TODO Calculate the output values
+        x, y, theta = prev_pose
+
+        if abs(delta_theta) < 1e-6:
+            # Straight motion
+            x_new = x + delta_s * np.cos(theta)
+            y_new = y + delta_s * np.sin(theta)
+            theta_new = theta
+        else:
+            # Arc motion
+            R = delta_s / delta_theta
+            x_new = x + R * (np.sin(theta + delta_theta) - np.sin(theta))
+            y_new = y - R * (np.cos(theta + delta_theta) - np.cos(theta))
+            theta_new = theta + delta_theta
         pose = prev_pose  # FILL THIS IN
         ##### YOUR CODE ENDS HERE   ##### # noqa: E266
 
