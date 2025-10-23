@@ -3,7 +3,7 @@ from sensor_msgs.msg import JointState
 import numpy as np
 from typing import List
 
-from mee4411_simulation.tb3_utils import TB3Params
+from tb3_utils import TB3Params
 
 
 class TB3Kinematics(TB3Params):
@@ -34,15 +34,20 @@ class TB3Kinematics(TB3Params):
         new_lp = new_joint_states.position[0]
         new_rp = new_joint_states.position[1]
         
-        new_t = new_joint_states.header.stamp.sec
+        new_tsec = new_joint_states.header.stamp.sec
+        new_tnano= new_joint_states.header.stamp.nanosec
+        new_t = new_tsec + new_tnano * 1e-9
 
         old_lp = prev_joint_states.position[0]
         old_rp = prev_joint_states.position[1]
-        old_t = prev_joint_states.header.stamp.sec
-        
-        delta_wheel_l = (new_lp - old_lp)
-        delta_wheel_r = (new_rp - old_rp)
-        delta_time = (new_t-old_t)
+
+        old_tsec = prev_joint_states.header.stamp.sec
+        old_tnano = prev_joint_states.header.stamp.nanosec
+        old_t = old_tsec + old_tnano * 1e-9
+
+        delta_wheel_l = new_lp - old_lp
+        delta_wheel_r = new_rp - old_rp
+        delta_time = new_t-old_t
         ##### YOUR CODE ENDS HERE   ##### # noqa: E266
 
         # Data validation
@@ -98,19 +103,26 @@ class TB3Kinematics(TB3Params):
         ##### YOUR CODE STARTS HERE ##### # noqa: E266
         # TODO Calculate the output values
         x, y, theta = prev_pose
+        x_new = x + delta_s * np.cos(theta + 0.5 * delta_theta)
+        y_new = y + delta_s * np.sin(theta + 0.5 * delta_theta)
+        # TODO fix our new theta
+        theta_new =  theta + delta_theta
+        
+        # old NF attempt. arc motion is correct just more than we need.
+        # if abs(delta_theta) < 1e-6:
+        #     # Straight motion
+        #     x_new = x + delta_s * np.cos(theta)
+        #     y_new = y + delta_s * np.sin(theta)
+        #     theta_new = theta
+        # else:
+        #     # Arc motion
+        #     # TODO where did this come from what do JD
+        #     R = delta_s / delta_theta
+        #     x_new = x + R * (np.sin(theta + delta_theta) - np.sin(theta))
+        #     y_new = y - R * (np.cos(theta + delta_theta) - np.cos(theta))
+        #     theta_new = theta + delta_theta
 
-        if abs(delta_theta) < 1e-6:
-            # Straight motion
-            x_new = x + delta_s * np.cos(theta)
-            y_new = y + delta_s * np.sin(theta)
-            theta_new = theta
-        else:
-            # Arc motion
-            R = delta_s / delta_theta
-            x_new = x + R * (np.sin(theta + delta_theta) - np.sin(theta))
-            y_new = y - R * (np.cos(theta + delta_theta) - np.cos(theta))
-            theta_new = theta + delta_theta
-        pose = prev_pose  # FILL THIS IN
+        pose = x_new , y_new, theta_new  # FILL THIS IN
         ##### YOUR CODE ENDS HERE   ##### # noqa: E266
 
         return pose
